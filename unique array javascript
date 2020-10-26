@@ -1,0 +1,12 @@
+https://stackoverflow.com/questions/1960473/get-all-unique-values-in-a-javascript-array-remove-duplicates
+
+
+function onlyUnique(value, index, self) {
+  return self.indexOf(value) === index;
+}
+
+// usage example:
+var a = ['a', 1, 'a', 2, '1'];
+var unique = a.filter(onlyUnique);
+
+console.log(unique); // ['a', 1, 2, '1']
