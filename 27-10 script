@@ -1,0 +1,340 @@
+angular.module("app", []).controller("HelloWorldCtrl", function($scope) {  
+    $scope.message="Hello World" ;
+
+    $scope.jsonText = [];
+
+    $scope.requiredData = {
+      database: [],
+      table: [],
+      columns: [],
+      aliasColums: []
+    };
+
+    $scope.selectedData = {
+      transformation: "",
+      database: "",
+      table: "",
+      columns: []
+    };
+    $scope.SourceColumnNames = [];
+    $scope.toggleSelection = function toggleSelection(column) {
+      var idx = $scope.selectedData.columns.indexOf(column);
+      if (idx > -1) {
+        // is currently selected
+        $scope.selectedData.columns.splice(idx, 1);
+       }
+       else {
+         // is newly selected
+         $scope.selectedData.columns.push(column);
+       }
+    };
+
+    $(document).ready(function(){
+          $("#fileUploader").change(function(evt){
+                var selectedFile = evt.target.files[0];
+                var reader = new FileReader();
+                reader.onload = function(event) {
+                  var data = event.target.result;
+                  var workbook = XLSX.read(data, {
+                      type: 'binary'
+                  });
+                  workbook.SheetNames.forEach(function(sheetName) {
+                    if(sheetName.toUpperCase() == "COMM_SOR MAPPING - IHUB RLM"){
+                      var XL_row_object = XLSX.utils.sheet_to_row_object_array(workbook.Sheets[sheetName]);
+
+                      
+
+                      var json_object = JSON.stringify(XL_row_object);
+                      //document.getElementById("jsonObject").innerHTML = json_object;
+                        
+
+                        $scope.$apply(function (scope) {
+
+                            $scope.jsonText = XL_row_object;
+
+                            $scope.jsonText.forEach(function(item, index){
+
+                              item.SourceDatabase_DataReport_Array = [];
+                              item.SourceDatabase_DataReport_Array = item.SourceDatabase_DataReport.split(" ");
+                              item.SourceDatabase_DataReport_Selected = "";
+                              if(item.SourceDatabase_DataReport_Array){
+                                item.SourceDatabase_DataReport_Selected = item.SourceDatabase_DataReport_Array[0];
+                              }
+
+                              item.SourceDatabase_DataReport_Array.forEach(function(database, databaseIndex){
+                                $scope.requiredData.database.push(database);
+                              })
+
+                              item.Source_TableName_Array = [];
+                              item.Source_TableName_Array = item.Source_TableName.split(" ");
+                              item.Source_TableName_Selected = "";
+                              if(item.Source_TableName_Array){
+                                item.Source_TableName_Selected = item.Source_TableName_Array[0];
+                              }
+
+                              item.Source_TableName_Array.forEach(function(table, tableIndex){
+                                $scope.requiredData.table.push(table);
+                              })
+
+                              item.Source_ColumnNAme_Array = [];
+                              item.Source_ColumnNAme_Array = item.Source_ColumnNAme.split(" ");
+                              
+                              item.Source_ColumnNAme_Selected = "";
+                              if(item.Source_ColumnNAme_Array){
+                                console.log("source names start");
+                                console.log($scope.SourceColumnNames);
+                                console.log("source names End");
+                                item.Source_ColumnNAme_Array.forEach(function(colName,Idx){
+                                  $scope.SourceColumnNames.push(colName);
+
+                                })
+                                
+                                item.Source_ColumnNAme_Selected = item.Source_ColumnNAme_Array[0];
+                              }
+
+                              item.Source_ColumnNAme_Array.forEach(function(column, columnIndex){
+                                $scope.requiredData.columns.push(column);
+                              })
+
+                              item.tgt_co_name_Array = [];
+                              item.tgt_co_name_Array = item.Target_ColumnNAme.split(" ");
+                              item.tgt_co_name_Selected = "";
+                              if(item.tgt_co_name_Array){
+                                item.tgt_co_name_Selected = item.tgt_co_name_Array[0];
+                              }
+
+                              item.tgt_co_name_Array.forEach(function(column, columnIndex){
+                                $scope.requiredData.aliasColums.push(column);
+                              })
+    
+                              console.log(item);
+
+
+                              if(item.Transformation_rule && item.Transformation_rule.toUpperCase() == "STRAIGHT MOVE"){
+                                var straightmove = item.Source_ColumnNAme + " AS " + item.tgt_co_name;
+                                
+                                $scope.straightMoveStatement.push(straightmove);
+                              }
+
+                              if(item.Transformation_rule && item.Transformation_rule.toUpperCase().indexOf("DEFAULT") > -1){
+                                var defaultState = item.Transformation_rule.replace('Default to', '');
+                                defaultState = defaultState.replace('Default', '');
+                                defaultState = defaultState + " AS " + item.tgt_co_name;
+
+                                $scope.defaultStatements.push(defaultState);
+                              }
+
+
+                            })
+
+                            
+                        });
+
+
+
+                    }
+                    })
+                };
+
+                reader.onerror = function(event) {
+                  console.error("File could not be read! Code " + event.target.error.code);
+                };
+
+                reader.readAsBinaryString(selectedFile);
+          });
+    });
+
+
+
+
+
+    $scope.transformations = [
+      {
+        name: "BASE_TABLE"
+      },
+      {
+        name: "CASE_STATEMENT"
+      },
+      
+      {
+        name: "JOIN"
+      },
+      {
+        name: "CONCAT"
+      }
+    ];
+
+    $scope.baseTable = "";
+
+//BaseTable
+      $scope.baseTable = {
+        name:""
+      };
+//BaseTable
+
+//DefaultStatement
+      $scope.defaultStatements = [];
+//DefaultStatement
+
+//StraightMove
+      $scope.straightMoveStatement = [];
+//StraightMove
+
+
+//CaseStatement
+    $scope.caseconditions = [
+      {
+        name: " IS NULL "
+      },
+      {
+        name: " IS NOT NULL "
+      }
+    ]
+
+    $scope.caseParams = {
+      sourceColumn: "",
+      condition: "",
+      targetColumn: "",
+      elseColumn: "",
+      aliasColums: ""
+    };
+
+    $scope.caseStatements = [];
+
+    $scope.getCaseStatement = function(){
+      var caseStatement = " CASE WHEN " + $scope.caseParams.sourceColumn + " " + 
+      $scope.caseParams.condition.name + " THEN " + $scope.caseParams.targetColumn + " ELSE " + 
+      $scope.caseParams.elseColumn + " END AS " + $scope.caseParams.aliasColums;
+
+      $scope.caseStatements.push(caseStatement);
+
+    }
+//CaseStatement
+
+//JoinStatement
+    $scope.joins = [
+      {
+        name: " INNER JOIN "
+      },
+      {
+        name: " LEFT OUTER JOIN "
+      },
+      {
+        name: " RIGHT OUTER JOIN "
+      },
+      {
+        name: " FULL OUTER JOIN "
+      }
+    ]
+
+    $scope.joinParams = {
+      joinType: "",      
+      joinTable: "",
+      fromColumn: "",
+      toColumn: ""
+    };
+
+    $scope.joinStatements = [];
+
+    $scope.getJoinStatements = function(){
+      var joinStatement = $scope.joinParams.joinType.name + " " + $scope.joinParams.joinTable + " ON " +
+      $scope.joinParams.fromColumn + " = " + $scope.joinParams.toColumn;
+
+      $scope.joinStatements.push(joinStatement);
+    }
+//JoinStatement
+
+// ConcatStatement
+
+$scope.concatStatement = [];
+
+$scope.concatStatementArray = [];    
+    $scope.concat = {
+      sourceColumNAme : ""
+    }
+    $scope.concatStatementArray.push($scope.concat);
+
+    $scope.getConcatStatements = function(){
+      var concatStatementString = "";
+      $scope.concatStatementArray.forEach(function(item, index){
+        concatStatementString += item.sourceColumNAme
+        if($scope.concatStatementArray.length != (index+1)){
+          concatStatementString += " || "
+        }
+      })
+
+      $scope.concatStatement.push(concatStatementString);
+    }
+
+// ConcatStatement
+
+    $scope.query = "";
+    $scope.createQuery = function(){
+      $scope.query = "SELECT ";
+      
+      $scope.straightMoveStatement.forEach(function(item, index){
+        $scope.query += item + ", "
+      })
+
+      $scope.defaultStatements.forEach(function(item, index){
+        $scope.query += item + ", "
+      })
+
+      $scope.caseStatements.forEach(function(item, index){
+        $scope.query += item + ", "
+      })
+
+      $scope.concatStatement.forEach(function(item, index){
+        $scope.query += item + ", "
+      })
+      
+      $scope.query += " FROM " + $scope.baseTable.name
+      
+      $scope.joinStatements.forEach(function(item, index){
+        $scope.query += " " + item + " ";
+      })
+
+
+    };
+
+    
+    $scope.autofillProduct = function (prodName,index, fieldType) {
+      var output = [];
+      if (prodName && prodName != '' && prodName.length > 0) {
+          prodName = String(prodName).toUpperCase();
+          console.log("source names start");
+          console.log($scope.SourceColumnNames);
+          console.log("source names End");
+          output = $scope.SourceColumnNames.filter(function (product) {
+              if (fieldType == 'COLUMN_NAME') {
+                  return (String(product).toUpperCase().includes(prodName) == true);
+              }
+             
+          });
+      }
+      if (fieldType == 'COLUMN_NAME') {
+        $scope["filterProducts_" + index] = output;
+      }
+     
+    };
+
+  $scope.fillTextbox = function (selProd,index) {
+    $scope.concatStatementArray[index].sourceColumNAme = selProd;
+    $scope['filterProducts_' + index] = null;
+  }
+
+  $scope.addConcat = function(){
+    let concat = {
+      sourceColumNAme : ""
+    }
+    $scope.concatStatementArray.push(concat);
+  }
+
+
+  $scope.activity = true;
+  $scope.activityToggle = function(){
+    $scope.activity = !$scope.activity;
+  }
+
+
+} )
