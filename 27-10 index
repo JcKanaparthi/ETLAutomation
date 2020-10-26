@@ -1,0 +1,283 @@
+<!DOCTYPE html>  
+<html lang="en" ng-app="app">  
+<head>  
+    <meta charset="utf 8">
+    <title>Automate</title>     
+    <script src="https://code.angularjs.org/1.6.9/angular.js"></script>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.8.0/jszip.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.8.0/xlsx.js"></script>
+
+    <script src="js/jquery.js"> </script>
+    <script lang="javascript" src="js/xlsx.full.min.js"></script>
+
+    <script src="js/HelloWorldCtrl.js"></script>
+    <script src="js/checklist-model.js"></script>
+    
+</head>  
+<body>
+    <div ng-controller="HelloWorldCtrl">
+        </br></br>
+        <input type="file" id="fileUploader" class="btn btn-info" name="fileUploader" accept=".xls, .xlsx"/>
+        </br></br>
+        <!--<label > {{message}} JSON 21: </label>-->
+
+
+        <!--<table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>
+                        Select Database
+                    </th>
+                    <th>
+                        Select Table Name
+                    </th>
+                    <th>
+                        Select Column Name
+                    </th>
+                    <th>
+                        Columns Data
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr ng-repeat="a in jsonText">
+                    <td>
+                        <select ng-model="a.SourceDatabase_DataReport_Selected" ng-options="x for x in a.SourceDatabase_DataReport_Array"></select>
+                        <br/>
+                        <small>{{a.SourceDatabase_DataReport}}</small>
+                    </td>
+                    <td>
+                        <select ng-model="a.Source_TableName_Selected" ng-options="x for x in a.Source_TableName_Array"></select>
+                        <br/>
+                        <small>{{a.Source_TableName}}</small>
+                    </td>
+                    <td>
+                        <select ng-model="a.Source_ColumnNAme_Selected" ng-options="x for x in a.Source_ColumnNAme_Array"></select>
+                        <button>-></button>
+                        <br/>
+                        <small>{{a.Source_ColumnNAme}}</small>
+                    </td>
+                </tr>
+            </tbody>
+        </table>-->
+
+
+        <table class="table table-bordered">
+            <thead class="table-info">
+                <tr>
+                    <th>
+                        Transformation
+                    </th>
+                    <th>
+                        Select
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <select ng-model="selectedData.transformation" ng-options="x.name for x in transformations"></select>                        
+                    </td>
+                    <td ng-if="selectedData.transformation.name == 'CASE_STATEMENT'">
+
+                        <div>
+                            <label>CASE WHEN</label>
+                            <select ng-model="caseParams.sourceColumn" ng-options="x for x in requiredData.columns"></select> 
+                            <select ng-model="caseParams.condition" ng-options="x.name for x in caseconditions"></select> 
+                            <label> THEN </label>
+                            <select ng-model="caseParams.targetColumn" ng-options="x for x in requiredData.columns"></select> 
+                            <label> ELSE </label>
+                            <select ng-model="caseParams.elseColumn" ng-options="x for x in requiredData.columns"></select> 
+                            <label> END AS  </label>
+                            <select ng-model="caseParams.aliasColums" ng-options="x for x in requiredData.aliasColums"></select> 
+                            <button ng-click="getCaseStatement()" class="btn btn-info">Get Case Statement</button>
+                        </div>
+                        
+                    </td>
+
+                    <td ng-if="selectedData.transformation.name == 'JOIN'">
+
+                        <div>
+                            <select ng-model="joinParams.joinType" ng-options="x.name for x in joins"></select> 
+                            <select ng-model="joinParams.joinTable" ng-options="x for x in requiredData.table"></select> 
+                            <label> ON </label>
+                            <select ng-model="joinParams.fromColumn" ng-options="x for x in requiredData.columns"></select> 
+                            <label> = </label>
+                            <select ng-model="joinParams.toColumn" ng-options="x for x in requiredData.columns"></select>  
+                            <button ng-click="getJoinStatements()" class="btn btn-info">Get Join Statement</button>
+                        </div>
+                        
+                    </td>
+
+                    <td ng-if="selectedData.transformation.name == 'BASE_TABLE'">
+
+                        <div>
+                            <select ng-model="baseTable.name" ng-options="x for x in requiredData.table"></select> 
+                            <button ng-click="" class="btn btn-info">Save Base Table</button>
+                        </div>
+                        
+                    </td>
+
+                    <td ng-if="selectedData.transformation.name == 'CONCAT'">
+                        <div class="row" ng-repeat="concatStatement in concatStatementArray track by $index" ng-init="parentIdx = $index">
+                            <div class="col-md-6" >
+                                <input type="text" autocomplete="off" placeholder="sourceColumNAme" ng-model="concatStatement.sourceColumNAme"  name="sourceColumNAme" id="sourceColumNAme"
+                                ng-keyup="autofillProduct(concatStatement.sourceColumNAme,parentIdx, 'COLUMN_NAME')"  class="form-control">
+                            <div>
+                                <ul class="list-group" ng-show="this['filterProducts_'+parentIdx] && this['filterProducts_'+parentIdx].length > 0" style="position:absolute;z-index:99; max-height:200px;overflow:scroll;border:1px solid">
+                                    <li class="list-group-item form-control" style="cursor:pointer; border: 1px solid #d4d4d4; width:265px"
+                                        ng-repeat="prod_$index in this['filterProducts_'+parentIdx]"
+                                        ng-click="fillTextbox(prod_$index,parentIdx)">
+                                        {{prod_$index}}
+                                    </li>
+    
+                                </ul>
+                            </div>
+                            <label ng-hide="$index == (concatStatementArray.length-1)">||</label>
+                            </div>
+                            
+                        </div>
+                        <br/>
+                        <button ng-click="addConcat();" class="btn btn-info">ADD</button>
+                        <br/>
+                        <br/>
+                        <br/>
+                        <button ng-click="getConcatStatements()" class="btn btn-info">Get Concat Statement</button>
+                    </td>
+
+                    <td ng-hide="true">
+                        <select ng-model="selectedData.table" ng-options="x for x in requiredData.table"></select>                        
+                    </td>
+                    <td ng-hide="true">                        
+                        <div ng-repeat="column in requiredData.columns">
+                            <div class="action-checkbox">
+                             <input id="{{column}}" type="checkbox" value="{{column}}" ng-checked="selection.indexOf(column) > -1" ng-click="toggleSelection(column)" />
+                             <label for="{{column}}"></label>
+                             {{column}}
+                            </div>
+                        </div>                        
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <br/>
+        <button class="btn btn-success" ng-click="createQuery()">Create Query</button>
+        <br/>
+        <br/>
+        <button ng-click="activityToggle()" class="btn btn-info">Activity Toggle</button>
+        <div ng-if="activity">
+        <br/>
+        <br/>
+        {{baseTable.name}}
+        <br/>
+        <br/>
+        <label ng-if="straightMoveStatement.length > 0">{{straightMoveStatement}}</label>
+        <br/>
+        <br/>
+        <label ng-if="defaultStatements.length > 0">{{defaultStatements}}</label>
+        <br/>
+        <br/>        
+        <label ng-repeat="value in concatStatement track by $index">{{value}}<br/></label>
+        <br/>
+        <br/>
+        <label ng-repeat="value in caseStatements track by $index">{{value}}<br/></label>
+        <br/>
+        <br/>
+        <label ng-repeat="value in joinStatements track by $index">{{value}}<br/></label>
+        </div>
+        <br/>
+        <br/>
+        <br/>
+        {{query}}
+        <br/>
+        <br/>
+        <br/>
+        <br/>
+        <br/>
+        <br/>
+
+    </div>
+    <style>
+        table {border-collapse:collapse; table-layout:fixed; width:310px;}
+        table td {border:solid 1px #fab; width:100px; word-wrap:break-word;}
+    </style>
+</body>  
+</html>
+
+
+
+
+
+
+
+
+
+<!--
+
+
+<html lang="en" ng-app="app">    
+
+<title> tt </title>
+
+<head>
+    <script src="https://code.angularjs.org/1.6.9/angular.js"></script>
+    <script src="js/jquery.js"> </script>
+    <script lang="javascript" src="js/xlsx.full.min.js"></script>
+
+</head>
+
+<body >
+    <div ng-controller="HelloWorldCtrl">
+        <input type="file" id="fileUploader" name="fileUploader" accept=".xls, .xlsx"/>
+        </br></br>
+        <label id="jsonObject"> JSON 21: {{jsonText}}</label>
+    </div>
+
+
+    <script>  
+        angular.module("app", []).controller("HelloWorldCtrl", function($scope) {  
+        $scope.message="Hello World" ;
+
+        $scope.jsonText = '';
+
+        $(document).ready(function(){
+              $("#fileUploader").change(function(evt){
+                    var selectedFile = evt.target.files[0];
+                    var reader = new FileReader();
+                    reader.onload = function(event) {
+                      var data = event.target.result;
+                      var workbook = XLSX.read(data, {
+                          type: 'binary'
+                      });
+                      workbook.SheetNames.forEach(function(sheetName) {
+                        
+                          var XL_row_object = XLSX.utils.sheet_to_row_object_array(workbook.Sheets[sheetName]);
+                          var json_object = JSON.stringify(XL_row_object);
+                          document.getElementById("jsonObject").innerHTML = json_object;
+                          $scope.jsonText = json_object;
+                        })
+                    };
+
+                    reader.onerror = function(event) {
+                      console.error("File could not be read! Code " + event.target.error.code);
+                    };
+
+                    reader.readAsBinaryString(selectedFile);
+              });
+        });
+
+
+
+
+        } )
+    </script> 
+</body>
+
+
+-->
