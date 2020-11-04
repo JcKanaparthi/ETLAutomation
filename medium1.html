@@ -16,44 +16,274 @@
     <script lang="javascript" src="js/xlsx.full.min.js"></script>
 
     <script src="js/HelloWorldCtrl.js"></script>
+    <script src="js/checklist-model.js"></script>
+    
 </head>  
 <body>
     <div ng-controller="HelloWorldCtrl">
-        <input type="file" id="fileUploader" name="fileUploader" accept=".xls, .xlsx"/>
         </br></br>
-        <label > {{message}} JSON 21: {{jsonText}}</label>
+        <input type="file" id="fileUploader" class="btn btn-info" name="fileUploader" accept=".xls, .xlsx"/>
+        </br></br>
+        <!--<label > {{message}} JSON 21: </label>-->
 
 
-        <table>
+        <!--<table class="table table-bordered">
             <thead>
                 <tr>
                     <th>
-                        Col 1
+                        Select Database
                     </th>
                     <th>
-                        Col 2
+                        Select Table Name
                     </th>
                     <th>
-                        Col 3
+                        Select Column Name
+                    </th>
+                    <th>
+                        Columns Data
                     </th>
                 </tr>
             </thead>
             <tbody>
                 <tr ng-repeat="a in jsonText">
                     <td>
-                        {{a.A1}}
+                        <select ng-model="a.SourceDatabase_DataReport_Selected" ng-options="x for x in a.SourceDatabase_DataReport_Array"></select>
+                        <br/>
+                        <small>{{a.SourceDatabase_DataReport}}</small>
                     </td>
                     <td>
-                        {{a.B1}}
+                        <select ng-model="a.Source_TableName_Selected" ng-options="x for x in a.Source_TableName_Array"></select>
+                        <br/>
+                        <small>{{a.Source_TableName}}</small>
                     </td>
                     <td>
-                        {{a.C1}}
+                        <select ng-model="a.Source_ColumnNAme_Selected" ng-options="x for x in a.Source_ColumnNAme_Array"></select>
+                        <button>-></button>
+                        <br/>
+                        <small>{{a.Source_ColumnNAme}}</small>
+                    </td>
+                </tr>
+            </tbody>
+        </table>-->
+
+
+        <table class="table table-bordered">
+            <thead class="table-info">
+                <tr>
+                    <th>
+                        Transformation
+                    </th>
+                    <th>
+                        Select
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <select ng-model="selectedData.transformation" ng-options="x.name for x in transformations"></select>                        
+                    </td>
+                    <td ng-if="selectedData.transformation.name == 'CASE_STATEMENT'">
+
+                        <div>
+                            <label>CASE WHEN</label>
+                            <select ng-model="caseParams.sourceColumn" ng-options="x for x in requiredData.columns"></select> 
+                            <select ng-model="caseParams.condition" ng-options="x.name for x in caseconditions"></select> 
+                            <label> THEN </label>
+                            <select ng-model="caseParams.targetColumn" ng-options="x for x in requiredData.columns"></select> 
+                            <label> ELSE </label>
+                            <select ng-model="caseParams.elseColumn" ng-options="x for x in requiredData.columns"></select> 
+                            <label> END AS  </label>
+                            <select ng-model="caseParams.aliasColums" ng-options="x for x in requiredData.aliasColums"></select> 
+                            <button ng-click="getCaseStatement()" class="btn btn-info">Get Case Statement</button>
+                        </div>
+                        
+                    </td>
+
+                    <td ng-if="selectedData.transformation.name == 'JOIN'">
+
+                        <div>
+                            <select ng-model="joinParams.joinType" ng-options="x.name for x in joins"></select> 
+                            <select ng-model="joinParams.joinTable" ng-options="x for x in requiredData.table"></select> 
+                            <label> ON </label>
+                            <select ng-model="joinParams.fromColumn" ng-options="x for x in requiredData.columns"></select> 
+                            <label> = </label>
+                            <select ng-model="joinParams.toColumn" ng-options="x for x in requiredData.columns"></select>  
+                            <button ng-click="getJoinStatements()" class="btn btn-info">Get Join Statement</button>
+                        </div>
+                        
+                    </td>
+
+                    <td ng-if="selectedData.transformation.name == 'BASE_TABLE'">
+
+                        <div>
+                            <select ng-model="baseTable.name" ng-options="x for x in requiredData.table"></select> 
+                            <button ng-click="" class="btn btn-info">Save Base Table</button>
+                        </div>
+                        
+                    </td>
+
+                    <td ng-if="selectedData.transformation.name == 'CONCAT'">
+                        <div class="row" ng-repeat="concatStatement in concatStatementArray track by $index" ng-init="parentIdx = $index">
+                            <div class="col-md-6" >
+                                <input type="text" autocomplete="off" placeholder="sourceColumNAme" ng-model="concatStatement.sourceColumNAme"  name="sourceColumNAme" id="sourceColumNAme"
+                                ng-keyup="autofillProduct(concatStatement.sourceColumNAme,parentIdx, 'COLUMN_NAME')"  class="form-control">
+                            <div>
+                                <ul class="list-group" ng-show="this['filterProducts_'+parentIdx] && this['filterProducts_'+parentIdx].length > 0" style="position:absolute;z-index:99; max-height:200px;overflow:scroll;border:1px solid">
+                                    <li class="list-group-item form-control" style="cursor:pointer; border: 1px solid #d4d4d4; width:265px"
+                                        ng-repeat="prod_$index in this['filterProducts_'+parentIdx] track by $index"
+                                        ng-click="fillTextbox(prod_$index,parentIdx,'COLUMN_NAME')">
+                                        {{prod_$index}}
+                                    </li>
+    
+                                </ul>
+                            </div>
+                            <label ng-hide="$index == (concatStatementArray.length-1)">||</label>
+                            </div>
+                            
+                        </div>
+                        <br/>
+                        <button ng-click="addConcat();" class="btn btn-info">ADD</button>
+                        <br/>
+                        <br/>
+                        <br/>
+                        <button ng-click="getConcatStatements()" class="btn btn-info">Get Concat Statement</button>
+                    </td>
+
+                    <td ng-if="selectedData.transformation.name == 'SUBSTRING'">
+                        <div class="row" ng-repeat="substringStatement in substringStatementArray track by $index" ng-init="parentIdx = $index">
+                            <div class="col-md-5" >
+                                <input type="text" autocomplete="off" placeholder="string" ng-model="substringStatement.substringColumNAme"  name="substringColumNAme" id="sourceColumNAme"
+                                ng-keyup="autofillProduct(substringStatement.substringColumNAme,parentIdx, 'SUB_STRING')"  class="form-control">
+                                <div>
+                                    <ul class="list-group" ng-show="this['filterSubString_'+parentIdx] && this['filterSubString_'+parentIdx].length > 0" style="position:absolute;z-index:99; max-height:200px;overflow:scroll;border:1px solid">
+                                        <li class="list-group-item form-control" style="cursor:pointer; border: 1px solid #d4d4d4; width:265px"
+                                            ng-repeat="prod_$index in this['filterSubString_'+parentIdx] track by $index"
+                                            ng-click="fillTextbox(prod_$index,parentIdx,'SUB_STRING')">
+                                            {{prod_$index}}
+                                        </li>
+        
+                                    </ul>
+                                </div>
+                            
+                            </div>
+                            <div class="col-md-2">
+                                <input type="number" min="1" onkeydown="if(event.key==='.'){event.preventDefault();}"  autocomplete="off" placeholder="start" ng-model="substringStatement.substringStart"  name="substringStart" id="substringStart"
+                                  class="form-control">
+                            </div>
+                            <div class="col-md-2">
+                                <input type="number" min="1" onkeydown="if(event.key==='.'){event.preventDefault();}"  autocomplete="off" placeholder="length" ng-model="substringStatement.substringLength"  name="substringLength" id="substringLength"
+                                  class="form-control">
+                            </div>
+                            <label> AS </label>
+                            <div class="col-md-2">
+                                <!-- <input type="text" autocomplete="off" placeholder="length" ng-model="substringStatement.substringAlias"  name="substringAlias" id="substringAlias"
+                                  class="form-control"> -->
+                                  <select ng-model="substringStatement.substringAlias" ng-options="x for x in requiredData.aliasColums" class="form-control"></select>
+                            </div>
+                            
+                        </div>
+                        <!-- <br/>
+                        <button ng-click="addSubstring();" class="btn btn-info">ADD</button> -->
+                        <br/>
+                        <br/>
+                        <button ng-click="getSubstringStatements()" class="btn btn-info">Get Substring</button>
+                    </td>
+
+                    <td ng-if="selectedData.transformation.name == 'AGGREGATE FUNCTIONS'">
+                        <div class="row" ng-repeat="aggregateStatement in aggregateStatementArray track by $index" ng-init="parentIdx = $index">
+                            <select class="form-control col-md-2" ng-model="aggregateStatement.aggregateType" ng-options="x.name as x.name for x in aggregateFunctions"></select> 
+                            
+                            <div class="col-md-5" >
+                                <input type="text" autocomplete="off" placeholder="Column" ng-model="aggregateStatement.aggregateColumn"  name="aggregateColumn" id="aggregateColumn"
+                                ng-keyup="autofillProduct(aggregateStatement.aggregateColumn,parentIdx, 'AGGREGATE')"  class="form-control">
+                                <div>
+                                    <ul class="list-group" ng-show="this['filterAggregate_'+parentIdx] && this['filterAggregate_'+parentIdx].length > 0" style="position:absolute;z-index:99; max-height:200px;overflow:scroll;border:1px solid">
+                                        <li class="list-group-item form-control" style="cursor:pointer; border: 1px solid #d4d4d4; width:265px"
+                                            ng-repeat="prod_$index in this['filterAggregate_'+parentIdx] track by $index"
+                                            ng-click="fillTextbox(prod_$index,parentIdx,'AGGREGATE')">
+                                            {{prod_$index}}
+                                        </li>
+        
+                                    </ul>
+                                </div>
+                            
+                            </div>
+                            <label> AS </label>
+                            <div class="col-md-2">
+                                <!-- <input type="text" autocomplete="off" placeholder="length" ng-model="substringStatement.substringAlias"  name="substringAlias" id="substringAlias"
+                                  class="form-control"> -->
+                                  <select ng-model="aggregateStatement.aggregateTargetName" ng-options="x for x in requiredData.aliasColums" class="form-control"></select>
+                            </div>
+                        </div>
+                        <br/>
+                        <br/>
+                        <button ng-click="getAggregateStatements()" class="btn btn-info">Get Substring</button>
+                    </td>
+
+                    <td ng-hide="true">
+                        <select ng-model="selectedData.table" ng-options="x for x in requiredData.table"></select>                        
+                    </td>
+                    <td ng-hide="true">                        
+                        <div ng-repeat="column in requiredData.columns track by $index">
+                            <div class="action-checkbox">
+                             <input id="{{column}}" type="checkbox" value="{{column}}" ng-checked="selection.indexOf(column) > -1" ng-click="toggleSelection(column)" />
+                             <label for="{{column}}"></label>
+                             {{column}}
+                            </div>
+                        </div>                        
                     </td>
                 </tr>
             </tbody>
         </table>
 
+        <br/>
+        <button class="btn btn-success" ng-click="createQuery()">Create Query</button>
+        <br/>
+        <br/>
+        <button ng-click="activityToggle()" class="btn btn-info">Activity Toggle</button>
+        <div ng-if="activity">
+        <br/>
+        <br/>
+        {{baseTable.name}}
+        <br/>
+        <br/>
+        <label ng-if="straightMoveStatement.length > 0">{{straightMoveStatement}}</label>
+        <br/>
+        <br/>
+        <label ng-if="defaultStatements.length > 0">{{defaultStatements}}</label>
+        <br/>
+        <br/>        
+        <label ng-repeat="value in concatStatement track by $index">{{value}}<br/></label>
+        <br/>
+        <br/>
+        <label ng-repeat="value in caseStatements track by $index">{{value}}<br/></label>
+        <br/>
+        <br/>
+        <label ng-repeat="value in substringStatement track by $index">{{value}}<br/></label>
+        <br/>
+        <br/>
+        <label ng-repeat="value in joinStatements track by $index">{{value}}<br/></label>
+        <br/>
+        <br/>
+        <label ng-repeat="value in aggregateStatement track by $index">{{value}}<br/></label>
+        </div>
+        <br/>
+        <br/>
+        <br/>
+        {{query}}
+        <br/>
+        <br/>
+        <br/>
+        <br/>
+        <br/>
+        <br/>
+
     </div>
+    <style>
+        table {border-collapse:collapse; table-layout:fixed; width:310px;}
+        table td {border:solid 1px #fab; width:100px; word-wrap:break-word;}
+    </style>
 </body>  
 </html>
 
