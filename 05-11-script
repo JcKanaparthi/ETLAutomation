@@ -121,7 +121,11 @@ angular.module("app", []).controller("HelloWorldCtrl", function($scope) {
                               if(item.Transformation_Rule && item.Transformation_Rule.toUpperCase().indexOf("DEFAULT") == 0){
                                 var defaultState = item.Transformation_Rule.replace('Default to', '');
                                 defaultState = defaultState.replace('Default', '');
-                                defaultState = "'" + defaultState + "' AS " + item.Target_Column_Field;
+                                if(defaultState.toUpperCase() == "NULL"){
+                                  defaultState = defaultState + " AS " + item.Target_Column_Field;
+                                }else{
+                                  defaultState = "'" + defaultState + "' AS " + item.Target_Column_Field;
+                                }
 
                                 $scope.defaultStatements.push(defaultState);
                               }
